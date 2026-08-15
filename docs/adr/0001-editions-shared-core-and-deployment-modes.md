@@ -34,10 +34,12 @@ branches.
 | Identity | Generic OIDC contract; documented reference provider | Managed identity adapter plus organization memberships |
 | Database | Operator-owned PostgreSQL | Managed PostgreSQL with mandatory tenant isolation |
 | Mail and object storage | Operator-configured adapters | Managed adapters and tenant-scoped configuration |
-| Billing and subscription | No subscription is required | Subscription lifecycle and entitlements are Cloud concerns |
+| Billing and subscription | Free to use; no RacePilot product license fee or subscription is required | Subscription lifecycle and entitlements are Cloud concerns |
 | Operations | Updates, backups, monitoring, and recovery are operator responsibilities | RacePilot is responsible for platform operations |
 
 Community is not a reduced or separate implementation of the business processes.
+Optional paid consulting, support, hosting/operations, or other services from
+RacePilot or third parties are separate from the free Community product license.
 Cloud sells managed operation and Cloud-only platform services, not a fork of the
 domain core.
 
