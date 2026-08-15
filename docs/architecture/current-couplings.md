@@ -1,0 +1,103 @@
+# Current MSC hardcodings and Cloud coupling inventory
+
+This inventory is a **current fact** snapshot from 2026-08-15. It records verified
+findings that must drive follow-up work for the architecture in
+[ADR 0001](../adr/0001-editions-shared-core-and-deployment-modes.md). Target ownership
+is described in the [repository/module map](repository-module-map.md).
+
+## Method and limitations
+
+The required backend, frontend, marketing, master-plan, and SaaS-concept sources were
+inspected. File trees, manifests, README files, workflows, infrastructure config,
+schema, routes, workers, auth, storage, mail, frontend runtime config, event context,
+and marketing components were read. Text searches covered case variants and related
+terms for MSC/Dreiecksrennen identities, domains/email, tenant/organization/event,
+AWS services, Cognito, SES, S3, RDS, Vercel, Stripe, deployment, and CI.
+
+`rg` was attempted first but is not installed in the execution environment. Searches
+therefore used recursive `grep` and `find`. Generated/dependency and VCS directories
+(`.git`, `node_modules`, backend `dist`/`cdk.out`, frontend `dist`, marketing `.next`),
+lockfiles, and binary assets were excluded from content searches. Evidence is from the
+checked-out working trees only, not every Git branch or history. Text search cannot
+prove the absence of dynamically assembled values, external configuration, or
+undeclared production resources. Line numbers can drift after source changes.
+
+“No module found” means no matching source/module was found within that scope; it is
+not an audit of external accounts. The inventory distinguishes grouped repetitions
+from individual semantic couplings and does not claim a secret scan or production
+security assessment.
+
+## Backend: verified MSC-specific coupling
+
+| ID | Verified finding and evidence paths | Why it blocks a shared product | Follow-up obligation |
+|---|---|---|---|
+| B-MSC-01 | Repository/workspace identity and stack naming are `dreiecksrennen`: `MSC-Event-Backend/package.json:2`, `api/package.json:2`, `infra/package.json:2`, `README.md:1`, `infra/lib/config/dev.ts:8,15`, `infra/lib/config/prod.ts:17,21`, `.github/workflows/ci-cd.yml:117,248,345`, and stack lookups in `scripts/phase3-smoke-test.ps1` and `scripts/public-registration-dev-readiness.ps1`. | Operator identity is embedded in package and build/deployment resource names. | Introduce neutral names and a migration plan; do not rename live resources without explicit state/import/rollback planning. |
+| B-MSC-02 | Organizer sender defaults are embedded in `infra/lib/config/dev.ts:19`, `infra/lib/config/prod.ts:26`, and `api/src/mail/ses.ts:4-5,23-28`. Mail sign-offs/default branding also appear in `api/src/mail/i18n.ts:71,92,113,134` and `api/src/mail/rendering.ts:718,748`. | Sender and brand are neither tenant configuration nor provider-neutral defaults. | Resolve validated sender/branding server-side per organization; Community requires operator config and Cloud enforces tenant sender policy. |
+| B-MSC-03 | Legal controller, address, chairman, club-specific membership/payment language, privacy and media consents are source constants in `api/src/routes/publicLegalTextsSource.ts:77-873` across German, English, Czech, and Polish. | Legal content is customer-specific and cannot be inherited by another installation/tenant. | Move versioned legal content and controller data into organization/event configuration with required-field validation and immutable consent evidence. |
+| B-MSC-04 | Entry-confirmation defaults contain organizer, website, payment recipient and bank name in `api/src/domain/entryConfirmationConfig.ts:71-93`, repeated by seed migration `api/migrations/0043_app_config.sql:16-32`; contact/organizer fallbacks and the MSC logo key appear in `api/src/docs/entryConfirmation.ts:19,22,765,829`. | Documents and payment instructions can expose the wrong operator. | Migrate existing values into the default MSC organization; require organization/event-owned document configuration and branded asset references. |
+| B-MSC-05 | PDF metadata/copy is MSC-specific in `api/src/docs/pdf.ts:257,333`; signing uses a fixed location in `api/src/routes/adminSigning.ts:432`; `/public/mail/logo` returns `public/mail/msc-logo.png` in `api/src/handler.ts:322-324`; the source asset is `infra/assets/mail-logo/msc-logo.png`. | Generated/legal artifacts are branded globally. | Resolve artifact metadata, location, and assets from validated tenant/event config; version the values used for each artifact. |
+| B-MSC-06 | Waiver-signed seed mail hardcodes the MSC address/sign-off in `api/migrations/0063_waiver_signed_mail_template.sql:31-49`; placeholder examples also use the MSC/event in `api/src/mail/placeholders.ts:8,36,64` and `api/src/mail/templateContracts.ts:248`. | Seeded content becomes customer-visible and examples encourage copied defaults. | Replace seeds with neutral templates and explicit required organization values; migrate current templates without losing history. |
+| B-MSC-07 | Marshal import discovers two 2024 events whose names contain `Dreieck` in `api/src/routes/adminMarshals.ts:521`. | This is hidden, event-name-based customer business logic. | Replace it with explicit, organization-scoped import source selection and validation. |
+| B-MSC-08 | API/header/scope identifiers embed MSC: `api/src/handler.ts:247`, `api/src/http/response.ts:22`, `api/src/http/auth.ts:85-100,229,271-274`, `infra/lib/stacks/auth-stack.ts:106,157`, and `infra/lib/stacks/api-stack.ts:341`. | Public contracts and automation policy are tied to the predecessor identity. | Version and migrate neutral authorization/header contracts; keep permissions server-side and do not turn legacy headers into tenant authority. |
+| B-MSC-09 | Dashboard geocoding sends a fixed User-Agent with the MSC domain in `api/src/routes/adminDashboard.ts:489`. | A third-party request identifies the reference customer for every deployment. | Make compliant operator contact/product identification deployment configuration, with Cloud-managed and Community-required values. |
+| B-MSC-10 | Migration runner references `/dreiecksrennen/github/pat` and repository `MSC-Event-Backend` in `infra/lib/stacks/migration-runner-stack.ts:28,35,75`. | Infrastructure automation assumes one secret name and predecessor repository. | Remove repository-token coupling from product code; use deployment-owned artifact/version inputs and least-privilege credentials. |
+| B-MSC-11 | Legacy identifiers and customer fixtures are repeated in public contracts/tests and operational documentation: `api/openapi.json`, `api/tests/{doublestarter-migration,entry-confirmation-pdf,lifecycle-mail,mail-rendering-contract,payment-reference,support-auth}.test.js`, `docs/feature-branch-dev-environment.md`, `docs/github-actions-cicd.md`, `docs/phase5-handover.md`, and `docs/privacy/legal-texts-v1.md`. | Renaming only runtime code would leave contracts, assertions, examples, and runbooks inconsistent. Some fixtures intentionally preserve migration evidence. | Classify each occurrence as a versioned legacy contract, migration fixture, or replaceable product identity; update consumers and retain explicit MSC migration fixtures where needed. |
+
+## Backend: verified Cloud/provider and tenancy coupling
+
+| ID | Verified finding and evidence paths | Architectural impact | Follow-up obligation |
+|---|---|---|---|
+| B-CLD-01 | `MSC-Event-Backend/infra/bin/app.ts` always assembles AWS CDK Auth and Storage stacks and conditionally Data/API/Migration stacks; `infra/lib/stacks/api-stack.ts` deploys API Gateway, Lambda, EventBridge schedules, IAM, CloudWatch Logs, Cognito authorizer, SES/S3/RDS access. | The only deployment assembly is AWS-specific and combines shared runtime with Cloud infrastructure. | Preserve AWS as a Cloud adapter/assembly; add a separate Community assembly against public ports. |
+| B-CLD-02 | Database client directly imports Secrets Manager and RDS Signer in `api/src/db/client.ts:3-4`; it requires `DB_SECRET_ARN` (`:33-35`) and defaults the RDS CA URL (`:139`), while IAM auth requires AWS region (`:191-193`). | Shared persistence bootstrap assumes AWS secrets/RDS even though a partial URL path exists. | Define a provider-neutral database configuration/credential port and test ordinary PostgreSQL in Community plus managed credentials in Cloud. |
+| B-CLD-03 | Storage directly imports S3/presigning in `api/src/docs/storage.ts:1-2` and requires `DOCUMENTS_BUCKET`/`ASSETS_BUCKET` (`:5-15`). Event-only object paths have no organization prefix: vehicle images in `api/src/routes/publicRegistration.ts:1432`, documents in `api/src/routes/adminDocs.ts:130` and `api/src/docs/entryConfirmation.ts:1000`, exports in `api/src/routes/adminExports.ts:144`, mail attachments in `api/src/routes/adminMail.ts:2946`, and signing evidence in `api/src/routes/adminSigning.ts:837-839`. | Community cannot select a local/S3-compatible adapter cleanly, and Cloud object isolation lacks a tenant namespace. | Extract an object-store port and migrate keys to `tenant/{organizationId}/...`, including legacy lookup and negative access tests. |
+| B-CLD-04 | Mail transport directly imports the AWS SES client in `api/src/mail/ses.ts:1`; API IAM grants `ses:SendEmail`/`ses:SendRawEmail` in `infra/lib/stacks/api-stack.ts`. | Community SMTP and tenant-aware Cloud sender policies are not adapter boundaries. | Extract mail transport and sender-policy ports; provide SMTP/reference and managed implementations. |
+| B-CLD-05 | User administration directly imports Cognito Identity Provider in `api/src/routes/adminIam.ts:1-13`, requires `COGNITO_USER_POOL_ID` (`:71`), and uses AWS region (`:67`). Auth config and authorizer are Cognito-specific in `api/src/http/auth.ts` and `infra/lib/stacks/auth-stack.ts`. | Generic OIDC validation and organization membership are absent. | Introduce a generic OIDC/authentication contract and a separate membership/permission service; retain Cognito only as a Cloud adapter. |
+| B-CLD-06 | The schema at `api/src/db/schema.ts:18-1041` defines `event` and event-owned resources but no organization/tenant table or `organization_id`. `app_config` at `:47` is global. A partial unique index permits one global current event at `:41-44`; routes query `event.isCurrent` globally, including `publicRegistration.ts:1295`, `adminEvents.ts:168`, and `technicalInspection.ts:90`. | Event is the highest isolation boundary; the model cannot represent many organizations safely. | Add organization ownership, tenant context, composite constraints/query scoping, RLS defense, and migrate existing rows to one explicit MSC organization. |
+| B-CLD-07 | Scheduled workers are global Lambda handlers: email and retention functions/schedules are created in `infra/lib/stacks/api-stack.ts:134-184,306-314`; retention SQL in `api/src/jobs/privacyRetentionWorker.ts` operates by time/event without organization context. | A future multi-tenant worker could process data without an explicit tenant boundary. | Require organization on messages/jobs, partition work, scope all worker queries/audit, and add cross-tenant job tests. Platform-wide maintenance must enumerate tenants server-side. |
+| B-CLD-08 | Production config uses `dbConnectivityMode: 'public_budget'`, `dbUseIamAuth: false`, and `dbPublicAccess: true` in `infra/lib/config/prod.ts:37-48`. | This current budget profile is not the accepted managed multi-tenant target. | Implement and verify a private Cloud database profile, pooling/credentials, backups and restore before Cloud multi-tenant readiness. |
+| B-CLD-09 | Backend CI/CD assumes GitHub Actions, AWS OIDC roles, CDK, CloudFormation, and direct RDS lifecycle/deployment in `MSC-Event-Backend/.github/workflows/ci-cd.yml`. Common validation runs API tests and an infra build but no deployment-mode matrix. | Useful current CI exists, but it neither validates Community nor proves tenant isolation. | Implement the matrix in [required CI coverage](ci-coverage.md); keep deployment jobs separate from portable product checks. |
+| B-CLD-10 | Database migration/setup tooling also imports AWS Secrets Manager directly: `api/src/tools/doublestarterMigration.ts:5,267-287` and `api/scripts/seed-dev-current-event.js:4,84-106`. Both accept `DATABASE_URL`, but otherwise resolve AWS secret ARNs; the seed script also selects an AWS region and instantiates `SecretsManagerClient`. | Community can use the URL branch, but these otherwise reusable tools still load provider-specific dependencies and embed Cloud credential-resolution behavior. A provider-neutral Community distribution cannot treat database tooling as part of the shared boundary without accounting for that coupling. | Route migration and setup tools through the same provider-neutral database configuration/credential port as runtime bootstrap, or isolate their AWS resolution in a Cloud adapter; exercise the `DATABASE_URL` path in Community migration and seed tests. |
+
+## Product frontend: verified MSC-specific coupling
+
+| ID | Verified finding and evidence paths | Why it matters | Follow-up obligation |
+|---|---|---|---|
+| F-MSC-01 | Contact/website defaults are fixed in `MSC-Event-Frontend/src/config/public-info.ts:1-17` and repeated in `.env.development:7-8`, `.env.production:8-9`, `.env.local.example:9-10`, and `scripts/sync-dev-env.ps1:33-34`. | Another operator can display MSC contact/legal destinations. | Supply validated organization/event contact and legal links from the server bootstrap; remove customer defaults. |
+| F-MSC-02 | `src/app/i18n/anmeldung-i18n.tsx:13-24,303-314,575-585,860-871` embeds the 12th Oberlausitzer Dreieck, MSC contact, and copyright in four locales. | Translated domain UI is also customer content. | Separate reusable translations from server-supplied event/organization content. |
+| F-MSC-03 | Branding is compiled into `msc-logo.png` and `src/app/document-meta.tsx:3-112`; HTML and manifests embed MSC names in `admin.html:7-13`, `public/admin.webmanifest:3-5`, and `public/inspection.webmanifest:3`. Admin shell/login also say MSC in `src/app/layouts/admin-layout.tsx:21,51` and `src/pages/admin/login-page.tsx:142-143`. | One frontend build cannot safely brand multiple tenants. | Render titles/icons/manifest strategy from sanitized server branding with neutral fallbacks; verify cache/host separation. |
+| F-MSC-04 | Mail design lab contains MSC logo, event names, verification URL and sign-off in `src/pages/admin/mail-design-lab-page.tsx:125-276,1215,1310,1426-1427`. | Preview/demo content can leak into real tenant templates or mislead operators. | Use synthetic preview fixtures or organization/event data, clearly separated from persisted templates. |
+| F-MSC-05 | MSC-prefixed local/session storage, cookie, runtime-global and header names occur in `src/app/auth/auth-store.ts:1-3`, `src/app/auth/cognito.ts:3-8`, `src/app/i18n/anmeldung-i18n.tsx:5`, `src/pages/admin/{communication-page,entry-detail-page,marshals-page,settings-page}.tsx`, `src/pages/public/anmeldung-page.tsx:868`, `src/services/{admin-marshals.service,admin-signing.service}.ts`, `src/services/api/http-client.ts:9,53,66,145`, and `public/runtime-config.js:1-3`. | Names are predecessor-specific and storage may collide across organizations/hosts. | Version neutral keys and scope tenant-specific browser caches by trusted bootstrap identity; migrate/expire legacy keys. |
+| F-MSC-06 | Legacy naming is repeated in frontend contracts and documentation: `api/{openapi,entry-confirmation-config.openapi,entry-orga-code.openapi}.json`, `README.md`, `docs/BACKEND_MAIL_AGENT_PROMPT_TRACKLINE_V2.md`, `docs/BACKEND_MAIL_HTML_DRAFTS_TRACKLINE_V2.md`, `docs/DEPLOY_ENV.md`, `docs/feature-branch-local-dev.md`, and `docs/github-actions-cicd.md`. | Contract copies and operational instructions can drift from the neutral server contract. | Establish one versioned contract source, regenerate consumers, and mark retained MSC migration/reference examples explicitly. |
+
+## Product frontend: verified provider and authority coupling
+
+| ID | Verified finding and evidence paths | Architectural impact | Follow-up obligation |
+|---|---|---|---|
+| F-CLD-01 | Auth UI is Cognito-specific through `src/app/auth/cognito.ts`, runtime Cognito fields in `src/app/auth/auth-context.tsx`, `src/services/api/http-client.ts`, and `.env*`; `scripts/sync-dev-env.ps1:12-29` reads CloudFormation and embeds a concrete Cognito domain/client ID. | Community generic OIDC is not an explicit adapter, and local development assumes the current AWS stack. | Introduce provider-neutral OIDC UI configuration supplied by the server; keep Cognito mapping in Cloud assembly only. |
+| F-CLD-02 | `window.__MSC_RUNTIME_CONFIG__` is mutable browser state (`public/runtime-config.js`; `src/services/api/http-client.ts:53,66`) and currently carries API/auth behavior. | Browser runtime values cannot be trusted for deployment mode, tenant, capability, entitlement, permission, or role. | Replace/augment it with server bootstrap for presentation; enforce every sensitive decision server-side as ADR 0001 requires. |
+| F-CLD-03 | `src/services/api/event-context.ts:54-124` caches one global public/admin current event and falls back from unauthorized admin lookup to the public current event. It carries no organization or host context. | A multi-tenant single build needs host/membership-scoped caches and fail-closed admin context. | Key caches by server-issued organization/bootstrap version; remove authorization fallback as a source of admin context. |
+| F-CLD-04 | Frontend workflow directly installs/deploys/promotes with Vercel and writes MSC/Cognito runtime config in `.github/workflows/ci-cd.yml:43-294`; cleanup calls Vercel API in `scripts/cleanup-vercel-preview-deployments.mjs`. | The product build/deploy path is provider-specific and has no Community packaging path. | Separate portable build/E2E from Vercel Cloud deployment; add Community packaging and both mode jobs. |
+
+## Marketing site: verified coupling and claim risks
+
+| ID | Verified finding and evidence paths | Architectural impact | Follow-up obligation |
+|---|---|---|---|
+| M-01 | MSC reference and Dreiecksrennen copy is embedded in `racepilot/components/Hero.tsx:23`, `SocialProof.tsx:21-29`, and `ProductShowcase.tsx:232`; the contact placeholder references an MSC example in `Contact.tsx:53`. | This is intentional marketing/reference content rather than tenant runtime data, but accuracy and consent still need ownership. | Keep it out of product runtime modules; review reference permission and claims separately. |
+| M-02 | Pricing claims Community source/Docker and Cloud availability in `racepilot/components/Pricing.tsx:8-50`, while the inspected product repositories contain no Community distribution or Cloud control plane. GitHub links are placeholders in `Footer.tsx:16` and `Nav.tsx:27`. | Marketing can imply editions are available before release evidence exists. | Gate edition availability claims and links on actual release evidence; label roadmap/pre-release state. |
+| M-03 | `racepilot/README.md:32-36` recommends Vercel deployment, but no marketing workflow was found. | This is hosting guidance/boilerplate, not evidence of an active deployment or product architecture. | Document real marketing deployment separately; keep it independent of product availability. |
+
+## Verified absences and open search limits
+
+- **Verified within the schema source:** no `organization` or `tenant` table/column was
+  found in `MSC-Event-Backend/api/src/db/schema.ts`; event is the current top-level
+  business separator.
+- **Not found in inspected sources:** subscription, billing, or entitlement modules;
+  a Cloud tenant/domain control plane; a Community container/Compose distribution;
+  or a server-issued deployment-mode/capability bootstrap.
+- **Not proven absent outside scope:** external AWS/Vercel configuration, untracked
+  files, other branches, private repositories, deployed functions, databases, DNS,
+  secrets, and account-level policy were not inspected.
+
+Follow-up workers must re-run the inventory against the then-current source and add
+newly discovered couplings rather than treating this snapshot as permanently
+exhaustive.
