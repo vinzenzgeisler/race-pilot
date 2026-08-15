@@ -5,7 +5,8 @@
 - Scope: Architecture decision only; implementation is pending
 - Related: [repository and module map](../architecture/repository-module-map.md),
   [current coupling inventory](../architecture/current-couplings.md), and
-  [required CI coverage](../architecture/ci-coverage.md)
+  [required CI coverage](../architecture/ci-coverage.md), and the
+  [tenant resource inventory and isolation-test contract](../security/tenant-resource-inventory.md)
 
 ## Context
 
@@ -183,3 +184,7 @@ Before Cloud is called multi-tenant:
 - replace the current public database target profile with an approved private profile;
 - implement subscription entitlements independently of permissions; and
 - implement the Cloud columns of the CI matrix, restore tests, and operational gates.
+
+Every newly tenant-capable resource is also subject to the versioned inventory and
+negative-test Definition of Done in the
+[tenant isolation contract](../security/tenant-resource-inventory.md#definition-of-done).
