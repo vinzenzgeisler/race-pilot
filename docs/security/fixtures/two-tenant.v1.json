@@ -14,7 +14,9 @@
       "exportJobId": "50000000-0000-4000-8000-000000000001",
       "outboxId": "60000000-0000-4000-8000-000000000001",
       "objectPrefix": "tenant/10000000-0000-4000-8000-000000000001/",
-      "idempotencyKey": "tenant-a:registration:fixture-1"
+      "idempotencyKey": "registration:fixture-collision-1",
+      "approvalActionId": "70000000-0000-4000-8000-000000000001",
+      "approvalPayloadReference": "aaa000000001"
     },
     {
       "organizationId": "10000000-0000-4000-8000-000000000002",
@@ -27,7 +29,9 @@
       "exportJobId": "50000000-0000-4000-8000-000000000002",
       "outboxId": "60000000-0000-4000-8000-000000000002",
       "objectPrefix": "tenant/10000000-0000-4000-8000-000000000002/",
-      "idempotencyKey": "tenant-b:registration:fixture-1"
+      "idempotencyKey": "registration:fixture-collision-1",
+      "approvalActionId": "70000000-0000-4000-8000-000000000002",
+      "approvalPayloadReference": "bbb000000002"
     }
   ],
   "collisions": {
@@ -38,7 +42,7 @@
   },
   "invariants": [
     "All identifiers and personal data are synthetic.",
-    "Each organization has distinct server-issued IDs but colliding human-readable values.",
+    "Each organization has distinct ownership and foreign-resource IDs but colliding human-readable values and an intentionally identical idempotency key.",
     "Each test snapshots both tenants' database rows, objects, jobs, caches and audit counts before a foreign-ID attempt.",
     "A foreign identifier returns no tenant data and leaves both tenants' snapshots unchanged."
   ]

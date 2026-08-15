@@ -81,6 +81,13 @@
       "assertions": ["Tenant-a queries disclose no tenant-b records or dimensions.", "Tenant-owned records include organizationId from trusted context.", "Platform-global evidence contains no tenant payload and has an explicit global event type."]
     },
     {
+      "id": "ISO-NOTIFICATION-FOREIGN-PAYLOAD",
+      "dimensions": ["writes", "background-jobs", "foreign-identifiers"],
+      "actor": "tenant-a approval proposal service and configured notification chat",
+      "attempt": "Send a notification containing tenant-b actionId, payload reference or action kind while executing in tenant-a context.",
+      "assertions": ["The notification is rejected before delivery and the tenant-a chat receives no tenant-b action kind, payload reference or callback data.", "No approval or denial callback can address the tenant-b action.", "The fallback notification path also emits no tenant-b payload and neither tenant's approval state changes."]
+    },
+    {
       "id": "ISO-SUPPORT-TOOL-FOREIGN-ID",
       "dimensions": ["reads", "writes", "foreign-identifiers"],
       "actor": "tenant-a scoped support/automation credential",

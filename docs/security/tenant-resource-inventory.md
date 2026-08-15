@@ -3,7 +3,7 @@
 This document is the human-readable security contract for RacePilot issue #38. The
 normative, versioned artifacts are:
 
-- [tenant resource inventory v1](tenant-resource-inventory.v1.json), containing 106
+- [tenant resource inventory v1](tenant-resource-inventory.v1.json), containing 109
   classified resource records;
 - [two-tenant fixture v1](fixtures/two-tenant.v1.json), containing synthetic
   organizations A and B; and
@@ -15,6 +15,11 @@ checks all three artifacts without installing dependencies. The
 [relative Markdown-link checker](../../scripts/check_relative_markdown_links.py) and
 [tenant inventory workflow](../../.github/workflows/tenant-inventory.yml) make the
 documentation checks repository-native.
+
+The validator embeds the closed v1 resource/test manifests and the exact reconciled
+42 backend table IDs, nine CLI SQLite table IDs, and 64 migration filenames. This is
+deliberate: validation does not require sibling repositories in CI, while deleting or
+silently replacing a known record fails instead of passing on category presence alone.
 
 ## Status and evidence boundary
 
@@ -32,7 +37,7 @@ The evidence snapshot is 2026-08-15:
 |---|---|
 | `MSC-Event-Backend` | `4a96266f13f43b43fc76292193924d491bdf8673` |
 | `MSC-Event-Frontend` | `b42ab84f2123a4860f4dbc9ad1c5a24f4d1b14cb` |
-| `MSC-Event-CLI` | `2e75b722216d3d72a2ea65654f15084bb275f2d7` |
+| `MSC-Event-CLI` | `43b8dbb1a101c55355e2f55da57cac51bd26ad7d` (`origin/main`) |
 | `MSC-Event-Signing-Terminal` | `8f92b42230dd2e04cee029a748cb428db1e6eedf` |
 
 Inspection covered backend schema/migrations, route registration and handlers, object
@@ -44,6 +49,14 @@ uncommitted package-manifest changes; those changes were not used as resource ev
 and were not modified. Nested CLI worktrees and generated/dependency outputs such as
 `.git`, `node_modules`, `dist`, `cdk.out`, `__pycache__`, and TypeScript build metadata
 were excluded from factual discovery.
+
+One supplemental risk record, `payload.cli-telegram-approval-notification`, documents
+the Telegram `sendMessage` payload observed at CLI local-only commit
+`2e75b722216d3d72a2ea65654f15084bb275f2d7`. That commit is not reachable from a
+remote ref and is therefore explicitly excluded from the canonical CLI evidence
+snapshot and from claims about shipped/current source. The record is retained to keep
+the discovered action-ID, payload-reference, action-kind and configured-chat boundary
+visible; it must be reconciled to a canonical remote commit if that code is published.
 
 This is not exhaustive runtime truth. No production account, deployed database,
 bucket contents, log group contents, provider console, secret, untracked external
@@ -79,7 +92,8 @@ marshals, IAM/support diagnostics; and the global payload-free health endpoint.
 
 The remaining records cover export formats and generated PDFs, presigning helpers,
 both bucket containers and every discovered object-key family, database and local
-outboxes, schedules/workers and their payload boundaries, browser/database caches,
+outboxes, schedules/workers and their payload boundaries (including both the
+`DevCostCleanupSchedule` and its inline payload-free worker), browser/database caches,
 idempotency keys, audit/log resources, metrics absence, and support/maintenance tools.
 
 Important current gaps made explicit by the catalog include:
@@ -98,10 +112,11 @@ Important current gaps made explicit by the catalog include:
 ## Two-tenant fixture
 
 The fixture uses reserved synthetic UUIDs and `.invalid` hosts only. Tenant A and B
-have distinct server-issued organization, event, entry, document, export and outbox
-IDs, while human-readable event codes, start numbers, email local parts and object leaf
-names deliberately collide. That combination proves isolation rather than accidental
-uniqueness.
+have distinct server-issued organization, event, entry, document, export, outbox and
+approval-action IDs. Human-readable event codes, start numbers, email local parts,
+object leaf names, and the idempotency key deliberately collide. The shared key is
+intentional: tenant namespace isolation—not accidental key uniqueness—must prevent
+cross-tenant deduplication.
 
 Before each negative attempt, the implementing test snapshots both tenants' relevant
 database rows, object listings/hashes, job/outbox states, cache values and audit counts.
@@ -129,6 +144,7 @@ The machine-readable matrix is the source of test IDs and assertions. It covers:
 | Browser/process caches | `ISO-CACHE-NAMESPACE` | Tenant switch cannot reuse data or authority. |
 | Idempotency/deduplication | `ISO-IDEMPOTENCY-NAMESPACE` | Same key in A and B does not collide. |
 | Audit/metrics/support evidence | `ISO-AUDIT-METRIC-SCOPE` | Tenant queries and emitted dimensions do not leak. |
+| Approval notifications | `ISO-NOTIFICATION-FOREIGN-PAYLOAD` | No foreign action ID, payload reference, kind or callback reaches a tenant chat. |
 | CLI/maintenance/signing tools | `ISO-SUPPORT-TOOL-FOREIGN-ID` | Foreign targets are neither printed nor changed. |
 | Deliberately global resources | `ISO-GLOBAL-NONINTERFERENCE` | No tenant payload or cross-tenant interference. |
 | Migrations/backfills | `ISO-MIGRATION-TENANT-SCOPE` | Explicit ownership reconciliation for both tenants. |
