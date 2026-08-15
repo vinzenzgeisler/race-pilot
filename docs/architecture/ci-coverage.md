@@ -39,6 +39,7 @@ the same artifact or commit is tested in both columns, not two rebuilt forks.
 | Retention and audit worker | Community retention configuration | Tenant-specific policy fixtures for A/B | Retain/delete/anonymize the intended rows only; audit includes server context; one tenant's run cannot affect another | Privacy owner |
 | Product frontend E2E | Server bootstrap says `community` | Server bootstrap says `cloud` for A, then B | Public registration and admin happy paths render from server data; a mutated browser bootstrap cannot authorize an API action | Frontend owner with Backend owner |
 | Community distribution smoke | Fresh host, published Compose inputs | Not applicable | Install from documentation, migrate, create the single organization/event, complete a test registration, run worker, back up and restore | Community distribution owner |
+| Community upgrade path | Install and start the latest supported prior Community release artifact, seed representative related fixture data, then upgrade in place to the candidate artifact | Not applicable | Candidate migrations succeed; fixture counts, values, and relationships reconcile; post-upgrade product E2E passes; the documented supported rollback and/or restore procedure is exercised and produces explicit recovery evidence | Community distribution owner with Data migration owner |
 | Cloud control-plane contract | Not applicable | Ephemeral control plane + runtime contracts | Organization/domain/membership/subscription changes produce signed or authenticated server state; disabled/unknown tenant fails closed | Cloud platform owner |
 | Migration | Existing MSC-shaped fixture becomes the one Community organization | Same fixture becomes an explicit Cloud tenant; add second tenant | Counts and relationships reconcile; storage and jobs acquire organization scope; rollback/restore is exercised | Data migration owner |
 
@@ -54,9 +55,19 @@ coverage in deployment jobs:
    contracts change.
 4. `community-distribution-smoke` runs for distribution changes and release
    candidates.
-5. `cloud-control-plane-contract` and destructive-environment tests run in the private
+5. `community-upgrade-path` is mandatory for every Community release candidate that
+   changes the distribution, application artifact, schema or migrations, or supported
+   recovery tooling/contract. It installs and starts the latest supported prior
+   Community release artifact, seeds or retains representative related fixture data,
+   upgrades in place to the immutable candidate artifact, runs candidate migrations,
+   reconciles data and relationships, and runs the Community product E2E suite. It
+   then exercises rollback and/or restore exactly as promised by the documented
+   supported recovery contract and publishes explicit evidence of the starting
+   version, candidate digest, migration versions, reconciliation results, E2E result,
+   recovery procedure, and recovered version/data checks.
+6. `cloud-control-plane-contract` and destructive-environment tests run in the private
    repository, report an unambiguous commit/contract version, and gate Cloud release.
-6. Migration, cross-tenant, backup/restore, dependency, secret, container, and IaC
+7. Migration, cross-tenant, backup/restore, dependency, secret, container, and IaC
    checks gate the relevant release candidate.
 
 Tests must use synthetic fixtures. A Cloud isolation job needs at least two
