@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "fixture": "fixtures/two-tenant.v1.json",
+  "requiredDimensions": [
+    "reads",
+    "writes",
+    "exports",
+    "documents-presigned-links",
+    "background-jobs",
+    "foreign-identifiers"
+  ],
+  "tests": [
+    {
+      "id": "ISO-READ-COLLECTION",
+      "dimensions": ["reads"],
+      "actor": "tenant-a admin or public host context",
+      "attempt": "List/search a resource with colliding tenant-b values.",
+      "assertions": ["Only tenant-a records are returned.", "No tenant-b identifier, count or aggregate is disclosed.", "No state changes in either tenant."]
+    },
+    {
+      "id": "ISO-READ-FOREIGN-ID",
+      "dimensions": ["reads", "foreign-identifiers"],
+      "actor": "tenant-a admin, public host context or signing device",
+      "attempt": "Read tenant-b event, entry, document, session, job or child ID directly.",
+      "assertions": ["Response is indistinguishable from not found and contains no tenant-b data.", "No state changes in either tenant."]
+    },
+    {
+      "id": "ISO-WRITE-FOREIGN-ID",
+      "dimensions": ["writes", "foreign-identifiers"],
+      "actor": "tenant-a authorized writer",
+      "attempt": "Create, update, delete, restore, finalize or attach using a tenant-b parent or resource ID.",
+      "assertions": ["The operation is rejected or affects zero rows.", "No tenant-b data is returned.", "Database, object, job, cache and audit state is unchanged except an allowed tenant-a denial audit."]
+    },
+    {
+      "id": "ISO-EXPORT-FOREIGN-ID",
+      "dimensions": ["exports", "background-jobs", "foreign-identifiers"],
+      "actor": "tenant-a export user/worker context",
+      "attempt": "Create, poll or download an export with tenant-b event/job/object IDs.",
+      "assertions": ["No export contains tenant-b rows.", "No tenant-b job is claimed or changed.", "No presigned URL for tenant-b is issued."]
+    },
+    {
+      "id": "ISO-DOCUMENT-FOREIGN-ID",
+      "dimensions": ["documents-presigned-links", "writes", "foreign-identifiers"],
+      "actor": "tenant-a documents/signing user",
+      "attempt": "Generate, sign, attach or download with tenant-b entry, signer, document or session IDs.",
+      "assertions": ["No document or evidence is generated or returned.", "No tenant-b signing/document state changes.", "No tenant-b object key is exposed."]
+    },
+    {
+      "id": "ISO-PRESIGNED-URL-FOREIGN-KEY",
+      "dimensions": ["documents-presigned-links", "foreign-identifiers"],
+      "actor": "tenant-a request context",
+      "attempt": "Request upload/download signing for a tenant-b key or reuse a tenant-a URL with a substituted key.",
+      "assertions": ["No URL is issued for the foreign key.", "The object store policy rejects namespace escape.", "No object is read, created or overwritten."]
+    },
+    {
+      "id": "ISO-BACKGROUND-FOREIGN-PAYLOAD",
+      "dimensions": ["background-jobs", "writes", "foreign-identifiers"],
+      "actor": "worker with immutable tenant-a job context",
+      "attempt": "Deliver a payload containing tenant-a organizationId and tenant-b resource/object IDs, or omit organizationId.",
+      "assertions": ["The worker fails closed before business mutation.", "No tenant-b row, object, mail or job state changes.", "Retry/deduplication remains scoped to tenant-a."]
+    },
+    {
+      "id": "ISO-CACHE-NAMESPACE",
+      "dimensions": ["reads", "foreign-identifiers"],
+      "actor": "one browser/process switching from tenant-a to tenant-b",
+      "attempt": "Populate tenant-a caches, sessions and local state, then resolve tenant-b.",
+      "assertions": ["Tenant-b never receives cached tenant-a data or authority.", "Cache keys include server-issued organization/bootstrap identity or are cleared on switch.", "Global reference caches contain no tenant-owned values."]
+    },
+    {
+      "id": "ISO-IDEMPOTENCY-NAMESPACE",
+      "dimensions": ["writes", "foreign-identifiers"],
+      "actor": "tenant-a and tenant-b writers",
+      "attempt": "Use the same idempotency key and colliding business values in both tenants, then retry with foreign parents.",
+      "assertions": ["Deduplication happens only within one organization.", "Neither tenant can discover or suppress the other's request.", "Foreign-parent retries make no state change."]
+    },
+    {
+      "id": "ISO-AUDIT-METRIC-SCOPE",
+      "dimensions": ["reads", "writes", "background-jobs"],
+      "actor": "tenant-a auditor/support identity and worker",
+      "attempt": "Query audit/operational evidence and emit a tenant-owned action.",
+      "assertions": ["Tenant-a queries disclose no tenant-b records or dimensions.", "Tenant-owned records include organizationId from trusted context.", "Platform-global evidence contains no tenant payload and has an explicit global event type."]
+    },
+    {
+      "id": "ISO-NOTIFICATION-FOREIGN-PAYLOAD",
+      "dimensions": ["writes", "background-jobs", "foreign-identifiers"],
+      "actor": "tenant-a approval proposal service and configured notification chat",
+      "attempt": "Send a notification containing tenant-b actionId, payload reference or action kind while executing in tenant-a context.",
+      "assertions": ["The notification is rejected before delivery and the tenant-a chat receives no tenant-b action kind, payload reference or callback data.", "No approval or denial callback can address the tenant-b action.", "The fallback notification path also emits no tenant-b payload and neither tenant's approval state changes."]
+    },
+    {
+      "id": "ISO-SUPPORT-TOOL-FOREIGN-ID",
+      "dimensions": ["reads", "writes", "foreign-identifiers"],
+      "actor": "tenant-a scoped support/automation credential",
+      "attempt": "Use CLI, repair, restore, migration, signing-terminal or diagnostic tooling with tenant-b IDs/keys.",
+      "assertions": ["The tool requires trusted organization context and refuses the foreign target.", "No tenant-b data is printed, persisted or mutated.", "Dry-run and apply summaries remain tenant-scoped."]
+    },
+    {
+      "id": "ISO-GLOBAL-NONINTERFERENCE",
+      "dimensions": ["reads", "writes"],
+      "actor": "tenant-a and tenant-b contexts",
+      "attempt": "Use a deliberately global reference/infrastructure resource from both tenants.",
+      "assertions": ["The resource contains no tenant-owned payload or mutable tenant branding/configuration.", "Tenant activity cannot evict, overwrite or disclose another tenant's state.", "Any tenant-derived key is namespaced before entering the global container."]
+    },
+    {
+      "id": "ISO-MIGRATION-TENANT-SCOPE",
+      "dimensions": ["reads", "writes", "background-jobs"],
+      "actor": "migration runner on the two-tenant fixture",
+      "attempt": "Apply/upgrade/rollback schema and data migrations with both organizations present.",
+      "assertions": ["Ownership columns and constraints reconcile for both tenants.", "Backfills use an explicit event-to-organization mapping.", "No row/object/job is assigned to the wrong tenant."]
+    },
+    {
+      "id": "ISO-DOD-INVENTORY-COVERAGE",
+      "dimensions": ["foreign-identifiers"],
+      "actor": "CI inventory validator",
+      "attempt": "Validate a change adding a tenant-capable resource without classification or a named negative test.",
+      "assertions": ["CI fails for missing/malformed inventory records.", "CI fails when the named test is absent from this matrix.", "Global classification requires a non-empty rationale."]
+    }
+  ]
+}

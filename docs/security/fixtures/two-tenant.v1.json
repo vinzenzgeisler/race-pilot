@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "tenant-isolation-two-org-v1",
+  "syntheticOnly": true,
+  "organizations": [
+    {
+      "organizationId": "10000000-0000-4000-8000-000000000001",
+      "slug": "tenant-a",
+      "host": "tenant-a.test.racepilot.invalid",
+      "adminSubject": "fixture-admin-a",
+      "eventId": "20000000-0000-4000-8000-000000000001",
+      "entryId": "30000000-0000-4000-8000-000000000001",
+      "documentId": "40000000-0000-4000-8000-000000000001",
+      "exportJobId": "50000000-0000-4000-8000-000000000001",
+      "outboxId": "60000000-0000-4000-8000-000000000001",
+      "objectPrefix": "tenant/10000000-0000-4000-8000-000000000001/",
+      "idempotencyKey": "registration:fixture-collision-1",
+      "approvalActionId": "70000000-0000-4000-8000-000000000001",
+      "approvalPayloadReference": "aaa000000001"
+    },
+    {
+      "organizationId": "10000000-0000-4000-8000-000000000002",
+      "slug": "tenant-b",
+      "host": "tenant-b.test.racepilot.invalid",
+      "adminSubject": "fixture-admin-b",
+      "eventId": "20000000-0000-4000-8000-000000000002",
+      "entryId": "30000000-0000-4000-8000-000000000002",
+      "documentId": "40000000-0000-4000-8000-000000000002",
+      "exportJobId": "50000000-0000-4000-8000-000000000002",
+      "outboxId": "60000000-0000-4000-8000-000000000002",
+      "objectPrefix": "tenant/10000000-0000-4000-8000-000000000002/",
+      "idempotencyKey": "registration:fixture-collision-1",
+      "approvalActionId": "70000000-0000-4000-8000-000000000002",
+      "approvalPayloadReference": "bbb000000002"
+    }
+  ],
+  "collisions": {
+    "humanReadableEventCode": "SPRINT-1",
+    "startNumber": "42",
+    "emailLocalPart": "driver",
+    "objectLeafName": "result.pdf"
+  },
+  "invariants": [
+    "All identifiers and personal data are synthetic.",
+    "Each organization has distinct ownership and foreign-resource IDs but colliding human-readable values and an intentionally identical idempotency key.",
+    "Each test snapshots both tenants' database rows, objects, jobs, caches and audit counts before a foreign-ID attempt.",
+    "A foreign identifier returns no tenant data and leaves both tenants' snapshots unchanged."
+  ]
+}

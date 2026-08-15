@@ -3,7 +3,9 @@
 This inventory is a **current fact** snapshot from 2026-08-15. It records verified
 findings that must drive follow-up work for the architecture in
 [ADR 0001](../adr/0001-editions-shared-core-and-deployment-modes.md). Target ownership
-is described in the [repository/module map](repository-module-map.md).
+is described in the [repository/module map](repository-module-map.md). Resource-level
+security classification and negative tests are maintained in the
+[tenant resource inventory](../security/tenant-resource-inventory.md).
 
 ## Method and limitations
 
@@ -102,3 +104,8 @@ security assessment.
 Follow-up workers must re-run the inventory against the then-current source and add
 newly discovered couplings rather than treating this snapshot as permanently
 exhaustive.
+
+Issue #38 performs a resource-focused snapshot across the backend, frontend, MSC
+operations CLI and signing terminal. Its
+[evidence boundary](../security/tenant-resource-inventory.md#status-and-evidence-boundary)
+is intentionally static and does not supersede the limitations above.

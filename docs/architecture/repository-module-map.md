@@ -18,7 +18,7 @@ Status terms follow the definitions in the [repository README](../../README.md).
 | Frontend deployment automation | `MSC-Event-Frontend/.github/workflows/ci-cd.yml`, `vercel.json`, `scripts/cleanup-vercel-preview-deployments.mjs` | **Current fact:** Vercel-specific build/deploy/promotion and preview cleanup. |
 | Backend deployment automation | `MSC-Event-Backend/.github/workflows/ci-cd.yml`, `scripts` | **Current fact:** AWS credentials, CDK synth/deploy/destroy, RDS lifecycle, migration, and seed automation. |
 | Marketing site | `racepilot/app`, `racepilot/components` | **Current fact:** separate Next.js site containing product, Community, Cloud, pricing, contact, and MSC reference copy. It contains no product API or control plane. |
-| Architecture coordination | `race-pilot` (this repository) | **Current fact:** documentation-only issue #34 baseline. No production module or deployment exists here. |
+| Architecture coordination | `race-pilot` (this repository) | **Current fact:** documentation-only issues #34/#38 baseline, including a machine-readable tenant resource inventory and its validator. No production module or deployment exists here. |
 | Community distribution | None found | **Current fact:** no Docker Compose, Helm chart, container build, or generic self-host bundle was found in the inspected repositories. |
 | Cloud control plane | None found | **Current fact:** no organization lifecycle, tenant/domain registry, subscription, billing, or entitlement module was found in the inspected repositories. |
 
@@ -87,4 +87,6 @@ The sources were inspected at these local read-only evidence paths:
 - `/home/node/.openclaw/workspace/SAAS_CONCEPT.md`
 
 The more granular evidence and search limitations are recorded in the
-[current coupling inventory](current-couplings.md).
+[current coupling inventory](current-couplings.md). The issue #38 source snapshots,
+including the separately inspected MSC operations CLI and signing terminal, are in the
+[tenant resource inventory evidence boundary](../security/tenant-resource-inventory.md#status-and-evidence-boundary).

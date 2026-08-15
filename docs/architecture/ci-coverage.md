@@ -1,7 +1,10 @@
 # Required CI coverage and ownership
 
 This document is a **target decision** and release contract. It does not add a CI
-workflow and must not be cited as proof that a check currently runs.
+workflow for application/product tests and must not be cited as proof that those checks
+currently run. Issue #38 adds only a repository-local documentation validator for the
+[tenant resource inventory](../security/tenant-resource-inventory.md); it is not a
+product isolation test.
 
 The edition architecture is accepted in
 [ADR 0001](../adr/0001-editions-shared-core-and-deployment-modes.md). Current
@@ -73,6 +76,10 @@ coverage in deployment jobs:
 Tests must use synthetic fixtures. A Cloud isolation job needs at least two
 organizations and deliberate foreign IDs for every affected resource group, including
 database rows, object keys, queued jobs, caches, downloads, and audit queries.
+The versioned
+[two-tenant fixture and negative-test matrix](../security/tenant-resource-inventory.md#two-tenant-fixture)
+define the minimum IDs, collisions, and no-data/no-state-change assertions for those
+implementing jobs.
 
 ## Ownership and evidence
 
